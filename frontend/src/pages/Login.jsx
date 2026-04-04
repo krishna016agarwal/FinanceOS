@@ -50,9 +50,9 @@ const Login = () => {
   // Quick-fill for evaluators
   const fillRole = (role) => {
     const creds = {
-      ADMIN: { email: "admin@example.com", password: "Password@123" },
-      ANALYST: { email: "analyst@example.com", password: "Password@123" },
-      VIEWER: { email: "viewer@example.com", password: "Password@123" },
+      ADMIN: { email: "arjun.sharma@finance.com", password: "Password@123" },
+      ANALYST: { email: "amit.patel@finance.com", password: "Password@123" },
+      VIEWER: { email: "ravi.shankar@finance.com", password: "Password@123" },
     };
     setForm(creds[role]);
     setErrors({});

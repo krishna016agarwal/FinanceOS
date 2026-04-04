@@ -12,7 +12,7 @@ const EMPTY_FILTERS = { type: '', category: '', from: '', to: '' };
 
 const Records = () => {
   const { user } = useAuth();
-  const isAdmin  = user?.role === 'ADMIN';
+  const isAdmin  = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
 
   const [records,  setRecords]  = useState([]);
   const [meta,     setMeta]     = useState(null);

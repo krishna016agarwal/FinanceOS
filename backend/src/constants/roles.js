@@ -2,6 +2,7 @@ const ROLES = Object.freeze({
   VIEWER: 'VIEWER',
   ANALYST: 'ANALYST',
   ADMIN: 'ADMIN',
+  SUPER_ADMIN: 'SUPER_ADMIN'
 });
 
 const RECORD_TYPES = Object.freeze({

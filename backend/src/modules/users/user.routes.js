@@ -1,37 +1,46 @@
-const express = require("express");
-const router = express.Router();
-const userController = require("./user.controller");
-const authenticate = require("../../middlewares/authenticate");
-const authorize = require("../../middlewares/authorize");
-const validate = require("../../middlewares/validate");
+const express    = require('express');
+const router     = express.Router();
+const userController = require('./user.controller');
+const authenticate   = require('../../middlewares/authenticate');
+const authorize      = require('../../middlewares/authorize');
+const validate       = require('../../middlewares/validate');
 const {
   updateRoleSchema,
   updateStatusSchema,
   getUsersSchema,
   userIdSchema,
-} = require("./user.validation");
+} = require('./user.validation');
 
 router.use(authenticate);
-router.use(authorize("ADMIN")); // all user routes — ADMIN only
 
-router.get("/", validate(getUsersSchema), userController.getAllUsers);
+// Both ADMIN and SUPER_ADMIN can access user management
+// But services enforce what each can actually DO
+router.use(authorize('ADMIN', 'SUPER_ADMIN'));
 
-// router.post("/", validate(createUserSchema), userController.createUser);
+router.get('/',
+  validate(getUsersSchema),
+  userController.getAllUsers
+);
 
-router.get("/:id", validate(userIdSchema), userController.getUserById);
 
-router.patch(
-  "/:id/role",
+router.get('/:id',
+  validate(userIdSchema),
+  userController.getUserById
+);
+
+router.patch('/:id/role',
   validate(updateRoleSchema),
-  userController.updateRole,
+  userController.updateRole
 );
 
-router.patch(
-  "/:id/status",
+router.patch('/:id/status',
   validate(updateStatusSchema),
-  userController.updateStatus,
+  userController.updateStatus
 );
 
-router.delete("/:id", validate(userIdSchema), userController.deleteUser);
+router.delete('/:id',
+  validate(userIdSchema),
+  userController.deleteUser
+);
 
 module.exports = router;

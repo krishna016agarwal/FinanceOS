@@ -29,7 +29,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: {
         values: Object.values(ROLES),
-        message: 'Role must be VIEWER, ANALYST, or ADMIN',
+        message: 'Role must be VIEWER, ANALYST, or ADMIN, or SUPER_ADMIN',
       },
       default: ROLES.VIEWER,
     },

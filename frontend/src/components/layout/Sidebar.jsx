@@ -7,9 +7,9 @@ import {
 } from 'lucide-react';
 
 const NAV = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'ANALYST','VIEWER'] },
-  { to: '/records',   label: 'Records',   icon: FileText,        roles: ['ADMIN', 'ANALYST'] },
-  { to: '/users',     label: 'Users',     icon: Users,           roles: ['ADMIN'] },
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'ANALYST','VIEWER', 'SUPER_ADMIN'] },
+  { to: '/records',   label: 'Records',   icon: FileText,        roles: ['ADMIN', 'ANALYST', 'SUPER_ADMIN'] },
+  { to: '/users',     label: 'Users',     icon: Users,           roles: ['ADMIN', 'SUPER_ADMIN'] },
 ];
 
 const Sidebar = () => {

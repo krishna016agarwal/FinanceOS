@@ -38,7 +38,7 @@ const App = () => (
         <Route
           path="/viewer"
           element={
-            <ProtectedRoute roles={["VIEWER", "ANALYST", "ADMIN"]}>
+            <ProtectedRoute roles={["VIEWER", "ANALYST", "ADMIN","SUPER_ADMIN"]}>
               <AppLayout>
                 <ViewerHome />
               </AppLayout>
@@ -49,7 +49,7 @@ const App = () => (
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute roles={["ADMIN", "ANALYST", "VIEWER"]}>
+            <ProtectedRoute roles={["ADMIN", "ANALYST", "VIEWER","SUPER_ADMIN"]}>
               {/* ^^^ add VIEWER here */}
               <AppLayout>
                 <Dashboard />
@@ -61,7 +61,7 @@ const App = () => (
         <Route
           path="/records"
           element={
-            <ProtectedRoute roles={["ADMIN", "ANALYST"]}>
+            <ProtectedRoute roles={["ADMIN", "ANALYST", "SUPER_ADMIN"]}>
               <AppLayout>
                 <Records />
               </AppLayout>
@@ -72,7 +72,7 @@ const App = () => (
         <Route
           path="/users"
           element={
-            <ProtectedRoute roles={["ADMIN"]}>
+            <ProtectedRoute roles={["ADMIN", "SUPER_ADMIN"]}>
               <AppLayout>
                 <Users />
               </AppLayout>

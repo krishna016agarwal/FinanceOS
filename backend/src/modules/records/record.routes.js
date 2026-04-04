@@ -8,10 +8,10 @@ const { createRecordSchema, updateRecordSchema, getRecordsSchema } = require('./
 
 router.use(authenticate);
 
-router.post('/', authorize('ADMIN'), validate(createRecordSchema), recordController.createRecord);
-router.get('/', authorize('ADMIN', 'ANALYST'), validate(getRecordsSchema), recordController.getRecords);
-router.get('/:id', authorize('ADMIN', 'ANALYST'), recordController.getRecordById);
-router.patch('/:id', authorize('ADMIN'), validate(updateRecordSchema), recordController.updateRecord);
-router.delete('/:id', authorize('ADMIN'), recordController.deleteRecord);
+router.post('/', authorize('ADMIN', 'SUPER_ADMIN'), validate(createRecordSchema), recordController.createRecord);
+router.get('/', authorize('ADMIN', 'ANALYST', 'SUPER_ADMIN'), validate(getRecordsSchema), recordController.getRecords);
+router.get('/:id', authorize('ADMIN', 'ANALYST', 'SUPER_ADMIN'), recordController.getRecordById);
+router.patch('/:id', authorize('ADMIN', 'SUPER_ADMIN'), validate(updateRecordSchema), recordController.updateRecord);
+router.delete('/:id', authorize('ADMIN','SUPER_ADMIN'), recordController.deleteRecord);
 
 module.exports = router;

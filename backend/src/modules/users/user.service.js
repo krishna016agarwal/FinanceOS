@@ -1,6 +1,13 @@
 const User     = require('./user.model');
 const AppError = require('../../utils/AppError');
 
+// Helper — fetch the requester to check their actual role
+const getRequester = async (requesterId) => {
+  const requester = await User.findById(requesterId);
+  if (!requester) throw new AppError('Requester not found', 401);
+  return requester;
+};
+
 const getAllUsers = async ({ page, limit, role, status, search }) => {
   const filter = {};
   if (role)   filter.role   = role;
@@ -13,34 +20,27 @@ const getAllUsers = async ({ page, limit, role, status, search }) => {
   }
 
   const skip = (page - 1) * limit;
-
   const [users, total] = await Promise.all([
-    User.find(filter)
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 }),
+    User.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
     User.countDocuments(filter),
   ]);
 
-  // Summary counts for the stats cards
-  const [totalActive, totalAdmin, totalAnalyst, totalViewer] = await Promise.all([
-    User.countDocuments({ status: 'ACTIVE' }),
-    User.countDocuments({ role: 'ADMIN' }),
-    User.countDocuments({ role: 'ANALYST' }),
-    User.countDocuments({ role: 'VIEWER' }),
-  ]);
+  const [totalActive, totalSuperAdmin, totalAdmin, totalAnalyst, totalViewer] =
+    await Promise.all([
+      User.countDocuments({ status: 'ACTIVE' }),
+      User.countDocuments({ role: 'SUPER_ADMIN' }),
+      User.countDocuments({ role: 'ADMIN' }),
+      User.countDocuments({ role: 'ANALYST' }),
+      User.countDocuments({ role: 'VIEWER' }),
+    ]);
 
   return {
     users,
-    meta: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    },
+    meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     stats: {
-      totalUsers:   total,
+      totalUsers: total,
       totalActive,
+      totalSuperAdmin,
       totalAdmin,
       totalAnalyst,
       totalViewer,
@@ -54,54 +54,106 @@ const getUserById = async (id) => {
   return user;
 };
 
-const updateRole = async (targetId, role, requesterId) => {
+const updateRole = async (targetId, newRole, requesterId) => {
+  // Cannot change own role
   if (targetId === requesterId.toString()) {
     throw new AppError('You cannot change your own role', 400);
   }
+
+  const [requester, target] = await Promise.all([
+    getRequester(requesterId),
+    User.findById(targetId),
+  ]);
+
+  if (!target) throw new AppError('User not found', 404);
+
+  // Nobody can touch SUPER_ADMIN role
+  if (target.role === 'SUPER_ADMIN') {
+    throw new AppError('Super admin role cannot be changed by anyone', 403);
+  }
+
+  // Nobody can assign SUPER_ADMIN role through API
+  if (newRole === 'SUPER_ADMIN') {
+    throw new AppError('Super admin role cannot be assigned through the API', 403);
+  }
+
+  // ADMIN cannot change another ADMIN's role — only SUPER_ADMIN can
+  if (target.role === 'ADMIN' && requester.role !== 'SUPER_ADMIN') {
+    throw new AppError(
+      'Only super admin can change another admin\'s role', 403
+    );
+  }
+
+  // ADMIN can only assign VIEWER or ANALYST — not ADMIN
+  if (requester.role === 'ADMIN' && newRole === 'ADMIN') {
+    throw new AppError(
+      'Admins cannot promote users to admin. Only super admin can.', 403
+    );
+  }
+
   const user = await User.findByIdAndUpdate(
     targetId,
-    { role },
+    { role: newRole },
     { new: true, runValidators: true }
   );
-  if (!user) throw new AppError('User not found', 404);
   return user;
 };
 
 const updateStatus = async (targetId, status, requesterId) => {
   if (targetId === requesterId.toString()) {
-    throw new AppError('You cannot deactivate your own account', 400);
+    throw new AppError('You cannot change your own status', 400);
   }
+
+  const [requester, target] = await Promise.all([
+    getRequester(requesterId),
+    User.findById(targetId),
+  ]);
+
+  if (!target) throw new AppError('User not found', 404);
+
+  // Cannot deactivate SUPER_ADMIN
+  if (target.role === 'SUPER_ADMIN') {
+    throw new AppError('Super admin account cannot be deactivated', 403);
+  }
+
+  // ADMIN cannot deactivate another ADMIN
+  if (target.role === 'ADMIN' && requester.role !== 'SUPER_ADMIN') {
+    throw new AppError(
+      'Only super admin can deactivate an admin account', 403
+    );
+  }
+
   const user = await User.findByIdAndUpdate(
     targetId,
     { status },
     { new: true, runValidators: true }
   );
-  if (!user) throw new AppError('User not found', 404);
   return user;
 };
 
-// Admin creates a user directly — no email verification needed
-// const createUser = async ({ name, email, password, role }, requesterId) => {
-//   const existing = await User.findOne({ email });
-//   if (existing) throw new AppError('Email already registered', 409);
 
-//   const user = await User.create({ name, email, password, role });
-//   return user;
-// };
-
-// Soft approach — deactivate instead of delete
-// Hard delete only if admin explicitly confirms
 const deleteUser = async (targetId, requesterId) => {
   if (targetId === requesterId.toString()) {
     throw new AppError('You cannot delete your own account', 400);
   }
 
-  const user = await User.findById(targetId);
-  if (!user) throw new AppError('User not found', 404);
+  const [requester, target] = await Promise.all([
+    getRequester(requesterId),
+    User.findById(targetId),
+  ]);
 
-  // Check if target is also an admin — prevent deleting other admins
-  if (user.role === 'ADMIN') {
-    throw new AppError('Cannot delete an admin account. Change their role first.', 403);
+  if (!target) throw new AppError('User not found', 404);
+
+  // SUPER_ADMIN can never be deleted
+  if (target.role === 'SUPER_ADMIN') {
+    throw new AppError('Super admin account cannot be deleted', 403);
+  }
+
+  // ADMIN cannot delete another ADMIN — only SUPER_ADMIN can
+  if (target.role === 'ADMIN' && requester.role !== 'SUPER_ADMIN') {
+    throw new AppError(
+      'Only super admin can delete an admin account', 403
+    );
   }
 
   await User.findByIdAndDelete(targetId);
@@ -113,6 +165,5 @@ module.exports = {
   getUserById,
   updateRole,
   updateStatus,
-  
   deleteUser,
 };
