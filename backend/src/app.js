@@ -31,7 +31,7 @@ app.use(cors({
 
 // Global rate limiter
 app.use(rateLimit({
-  windowMs: 0,
+  windowMs: 15 * 60 * 1000, // 15 minutes
   max: process.env.NODE_ENV === 'development' ? 1000 : 100,
   message: { success: false, message: 'Too many requests. Please slow down.' },
 }));
