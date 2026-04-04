@@ -1,15 +1,17 @@
 const express = require('express');
-const router = express.Router();
+const router  = express.Router();
 const dashboardController = require('./dashboard.controller');
-const authenticate = require('../../middlewares/authenticate');
-const authorize = require('../../middlewares/authorize');
+const authenticate        = require('../../middlewares/authenticate');
+const authorize           = require('../../middlewares/authorize');
 
-router.use(authenticate);
-router.use(authorize('ADMIN', 'ANALYST'));
+router.use(authenticate); // all dashboard routes require login
 
-router.get('/summary', dashboardController.getSummary);
-router.get('/by-category', dashboardController.getByCategory);
-router.get('/trends', dashboardController.getTrends);
-router.get('/recent', dashboardController.getRecentActivity);
+// VIEWER can see these — high level numbers only
+router.get('/summary',     authorize('ADMIN', 'ANALYST', 'VIEWER'), dashboardController.getSummary);
+router.get('/by-category', authorize('ADMIN', 'ANALYST', 'VIEWER'), dashboardController.getByCategory);
+router.get('/trends',      authorize('ADMIN', 'ANALYST', 'VIEWER'), dashboardController.getTrends);
+
+// VIEWER cannot see these — actual transaction details
+router.get('/recent',      authorize('ADMIN', 'ANALYST'),           dashboardController.getRecentActivity);
 
 module.exports = router;

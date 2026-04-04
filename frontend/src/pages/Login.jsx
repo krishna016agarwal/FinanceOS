@@ -1,63 +1,58 @@
-import { useState } from 'react';
-import {  Link } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { login as loginApi } from '../api/auth.api';
-import toast from 'react-hot-toast';
-import { TrendingUp } from 'lucide-react';
-import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { login as loginApi } from "../api/auth.api";
+import toast from "react-hot-toast";
+import { TrendingUp } from "lucide-react";
+import Button from "../components/ui/Button";
+import Input from "../components/ui/Input";
 
 const Login = () => {
   const { login } = useAuth();
-  const navigate   = useNavigate();
+  const navigate = useNavigate();
 
-  const [form, setForm]       = useState({ email: '', password: '' });
-  const [errors, setErrors]   = useState({});
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   const validate = () => {
     const e = {};
-    if (!form.email)    e.email    = 'Email is required';
-    if (!form.password) e.password = 'Password is required';
+    if (!form.email) e.email = "Email is required";
+    if (!form.password) e.password = "Password is required";
     setErrors(e);
     return !Object.keys(e).length;
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (!validate()) return;
-  setLoading(true);
-  try {
-    const res = await loginApi(form);
-    const { user, accessToken, refreshToken } = res.data.data;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validate()) return;
+    setLoading(true);
+    try {
+      const res = await loginApi(form);
+      const { user, accessToken, refreshToken } = res.data.data;
 
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
-    login({ user, tokens: { accessToken, refreshToken } });
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      login({ user, tokens: { accessToken, refreshToken } });
 
-    toast.success(`Welcome back, ${user.name}!`);
+      toast.success(`Welcome back, ${user.name}!`);
 
-    // Route based on role
-    if (user.role === 'VIEWER') {
-      navigate('/viewer');
-    } else {
-      navigate('/dashboard');
+      navigate("/dashboard");
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || "Login failed";
+      toast.error(msg);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    const msg = err.response?.data?.message || err.message || 'Login failed';
-    toast.error(msg);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // Quick-fill for evaluators
   const fillRole = (role) => {
     const creds = {
-      ADMIN:   { email: 'admin@example.com',   password: 'Password@123' },
-      ANALYST: { email: 'analyst@example.com', password: 'Password@123' },
-      VIEWER:  { email: 'viewer@example.com',  password: 'Password@123' },
+      ADMIN: { email: "admin@example.com", password: "Password@123" },
+      ANALYST: { email: "analyst@example.com", password: "Password@123" },
+      VIEWER: { email: "viewer@example.com", password: "Password@123" },
     };
     setForm(creds[role]);
     setErrors({});
@@ -77,9 +72,11 @@ const handleSubmit = async (e) => {
 
         {/* Quick fill — helpful for evaluator */}
         <div className="card p-4 mb-4">
-          <p className="text-xs font-medium text-gray-500 mb-2">Quick login (demo)</p>
+          <p className="text-xs font-medium text-gray-500 mb-2">
+            Quick login (demo)
+          </p>
           <div className="flex gap-2">
-            {['ADMIN', 'ANALYST', 'VIEWER'].map((role) => (
+            {["ADMIN", "ANALYST", "VIEWER"].map((role) => (
               <button
                 key={role}
                 onClick={() => fillRole(role)}
@@ -112,17 +109,25 @@ const handleSubmit = async (e) => {
               error={errors.password}
               autoComplete="current-password"
             />
-            <Button type="submit" loading={loading} className="w-full mt-2" size="lg">
+            <Button
+              type="submit"
+              loading={loading}
+              className="w-full mt-2"
+              size="lg"
+            >
               Sign in
             </Button>
           </form>
           {/* Already at bottom of Login.jsx — add this */}
-<p className="text-center text-sm text-gray-500 mt-4">
-  Don't have an account?{' '}
-  <Link to="/register" className="text-primary-600 font-medium hover:underline">
-    Create one
-  </Link>
-</p>
+          <p className="text-center text-sm text-gray-500 mt-4">
+            Don't have an account?{" "}
+            <Link
+              to="/register"
+              className="text-primary-600 font-medium hover:underline"
+            >
+              Create one
+            </Link>
+          </p>
         </div>
       </div>
     </div>

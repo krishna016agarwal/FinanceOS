@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { updateUserRole, updateUserStatus } from '../../api/users.api';
+import { updateUserRole, updateUserStatus , deleteUser} from '../../api/users.api';
 import { formatDate } from '../../utils/formatters';
 import Badge from '../ui/Badge';
 import Spinner from '../ui/Spinner';
 import Pagination from '../ui/Pagination';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-
+import {  Trash2 } from 'lucide-react';
 const ROLES    = ['VIEWER', 'ANALYST', 'ADMIN'];
 const STATUSES = ['ACTIVE', 'INACTIVE'];
 
@@ -35,7 +35,20 @@ const UsersTable = ({ users, loading, meta, page, onPageChange, onRefresh }) => 
       toast.error(err.response?.data?.message || 'Failed');
     } finally { setUpdating(null); }
   };
+const handleDelete = async (id, name) => {
+    if (!window.confirm(
+      `Delete user "${name}"? This cannot be undone.`
+    )) return;
 
+    setUpdating(id + 'delete');
+    try {
+      await deleteUser(id);
+      toast.success(`User ${name} deleted`);
+      onRefresh();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete user');
+    } finally { setUpdating(null); }
+  };
   if (loading)
     return <div className="card h-64 flex items-center justify-center"><Spinner size="lg" /></div>;
 
@@ -105,7 +118,24 @@ const UsersTable = ({ users, loading, meta, page, onPageChange, onRefresh }) => 
                   <td className="px-4 py-3">
                     <Badge label={u.status} />
                   </td>
+                  {!isSelf && (
+                    <td className="px-4 py-3">
+                      {updating === u._id + 'delete' ? (
+                        <Spinner size="sm" />
+                      ) : (
+                         <button
+                            onClick={() => handleDelete(u._id, u.name)}
+                            className="p-1.5 text-gray-400 hover:text-red-600
+                              hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete user"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
+                
               );
             })}
           </tbody>

@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 const NAV = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'ANALYST'] },
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'ANALYST','VIEWER'] },
   { to: '/records',   label: 'Records',   icon: FileText,        roles: ['ADMIN', 'ANALYST'] },
   { to: '/users',     label: 'Users',     icon: Users,           roles: ['ADMIN'] },
 ];

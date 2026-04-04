@@ -7,10 +7,23 @@ const toPaise = (amount) => Math.round(amount * 100);
 const createRecord = async (data, userId) => {
   const record = await FinancialRecord.create({
     ...data,
-    amount: toPaise(data.amount),
+    amount:    toPaise(data.amount),
     createdBy: userId,
   });
-  return FinancialRecord.findById(record._id).populate('createdBy', 'name email');
+
+  const populated = await FinancialRecord
+    .findById(record._id)
+    .populate('createdBy', 'name email');
+
+  // Attach a warning if date is in the future — not an error, just informational
+  const isFutureDate = new Date(data.date) > new Date();
+
+  return {
+    record: populated,
+    warning: isFutureDate
+      ? 'This record has a future date. Make sure this is intentional.'
+      : null,
+  };
 };
 
 const getRecords = async ({ page, limit, type, category, from, to, sortBy, order }) => {

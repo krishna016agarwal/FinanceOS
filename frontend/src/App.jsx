@@ -1,14 +1,14 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import ProtectedRoute from './components/layout/ProtectedRoute';
-import Sidebar    from './components/layout/Sidebar';
-import Login      from './pages/Login';
-import Dashboard  from './pages/Dashboard';
-import Records    from './pages/Records';
-import Users      from './pages/Users';
-import ViewerHome from './pages/ViewerHome';
-import Register from './pages/Register';
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import ProtectedRoute from "./components/layout/ProtectedRoute";
+import Sidebar from "./components/layout/Sidebar";
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
+import Records from "./pages/Records";
+import Users from "./pages/Users";
+import ViewerHome from "./pages/ViewerHome";
+import Register from "./pages/Register";
 
 const AppLayout = ({ children }) => (
   <div className="flex min-h-screen">
@@ -22,7 +22,7 @@ const DefaultRedirect = () => {
   const { user, loading } = useAuth();
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role === 'VIEWER') return <Navigate to="/viewer" replace />;
+  if (user.role === "VIEWER") return <Navigate to="/viewer" replace />;
   return <Navigate to="/dashboard" replace />;
 };
 
@@ -35,29 +35,50 @@ const App = () => (
         <Route path="/register" element={<Register />} />
 
         {/* VIEWER home — accessible only to VIEWER */}
-        <Route path="/viewer" element={
-          <ProtectedRoute roles={['VIEWER', 'ANALYST', 'ADMIN']}>
-            <AppLayout><ViewerHome /></AppLayout>
-          </ProtectedRoute>
-        } />
+        <Route
+          path="/viewer"
+          element={
+            <ProtectedRoute roles={["VIEWER", "ANALYST", "ADMIN"]}>
+              <AppLayout>
+                <ViewerHome />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
 
-        <Route path="/dashboard" element={
-          <ProtectedRoute roles={['ADMIN', 'ANALYST']}>
-            <AppLayout><Dashboard /></AppLayout>
-          </ProtectedRoute>
-        } />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute roles={["ADMIN", "ANALYST", "VIEWER"]}>
+              {/* ^^^ add VIEWER here */}
+              <AppLayout>
+                <Dashboard />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
 
-        <Route path="/records" element={
-          <ProtectedRoute roles={['ADMIN', 'ANALYST']}>
-            <AppLayout><Records /></AppLayout>
-          </ProtectedRoute>
-        } />
+        <Route
+          path="/records"
+          element={
+            <ProtectedRoute roles={["ADMIN", "ANALYST"]}>
+              <AppLayout>
+                <Records />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
 
-        <Route path="/users" element={
-          <ProtectedRoute roles={['ADMIN']}>
-            <AppLayout><Users /></AppLayout>
-          </ProtectedRoute>
-        } />
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute roles={["ADMIN"]}>
+              <AppLayout>
+                <Users />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
 
         <Route path="*" element={<DefaultRedirect />} />
       </Routes>

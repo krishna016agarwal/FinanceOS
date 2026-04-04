@@ -22,8 +22,6 @@ connectDB();
 // Security headers
 app.use(helmet());
 
-// CORS — allow your frontend origin
-// ADD this
 app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
   credentials: true,
@@ -34,12 +32,12 @@ app.use(cors({
 // Global rate limiter
 app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: process.env.NODE_ENV === 'development' ? 1000 : 100,
   message: { success: false, message: 'Too many requests. Please slow down.' },
 }));
 
 // Body parsers
-app.use(express.json({ limit: '10kb' }));
+app.use(express.json({ limit: '10kb' }));``
 app.use(express.urlencoded({ extended: true }));
 
 // Request logging
@@ -71,7 +69,7 @@ app.use((req, res) => {
   });
 });
 
-// Global error handler — must be last
+// Global error handler 
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;

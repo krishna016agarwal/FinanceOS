@@ -30,6 +30,7 @@ const errorHandler = (err, req, res, next) => {
   if (err.name === 'TokenExpiredError') error = handleJWTExpiredError();
 
   // Operational errors: safe to send details to client
+ 
   if (error.isOperational) {
     return res.status(error.statusCode).json({
       success: false,

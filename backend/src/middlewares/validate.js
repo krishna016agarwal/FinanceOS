@@ -13,7 +13,7 @@ const validate = (schema) => (req, res, next) => {
       field: err.path.slice(1).join('.'),
       message: err.message,
     })) || [];
-
+    
     return next(new AppError('Validation failed', 422, errors));
   }
 

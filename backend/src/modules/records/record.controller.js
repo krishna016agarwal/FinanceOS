@@ -3,8 +3,16 @@ const sendResponse = require('../../utils/sendResponse');
 const recordService = require('./record.service');
 
 const createRecord = asyncHandler(async (req, res) => {
-  const record = await recordService.createRecord(req.body, req.user._id);
-  sendResponse(res, { statusCode: 201, message: 'Record created', data: { record } });
+  const { record, warning } = await recordService.createRecord(
+    req.body,
+    req.user._id
+  );
+
+  sendResponse(res, {
+    statusCode: 201,
+    message:    warning || 'Record created successfully',
+    data:       { record },
+  });
 });
 
 const getRecords = asyncHandler(async (req, res) => {

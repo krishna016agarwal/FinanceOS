@@ -22,4 +22,9 @@ const updateStatus = asyncHandler(async (req, res) => {
   sendResponse(res, { message: 'Status updated successfully', data: { user } });
 });
 
-module.exports = { getAllUsers, getUserById, updateRole, updateStatus };
+const deleteUser = asyncHandler(async (req, res) => {
+  await userService.deleteUser(req.params.id, req.user._id);
+  sendResponse(res, { message: 'User deleted successfully' });
+});
+
+module.exports = { getAllUsers, getUserById, updateRole, updateStatus ,deleteUser };
