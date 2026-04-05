@@ -1,5 +1,5 @@
-const FinancialRecord = require('./record.model');
-const AppError = require('../../utils/AppError');
+const FinancialRecord = require("./record.model");
+const AppError = require("../../utils/AppError");
 
 // Convert rupees to paise before saving
 const toPaise = (amount) => Math.round(amount * 100);
@@ -7,13 +7,14 @@ const toPaise = (amount) => Math.round(amount * 100);
 const createRecord = async (data, userId) => {
   const record = await FinancialRecord.create({
     ...data,
-    amount:    toPaise(data.amount),
+    amount: toPaise(data.amount),
     createdBy: userId,
   });
 
-  const populated = await FinancialRecord
-    .findById(record._id)
-    .populate('createdBy', 'name email');
+  const populated = await FinancialRecord.findById(record._id).populate(
+    "createdBy",
+    "name email",
+  );
 
   // Attach a warning if date is in the future — not an error, just informational
   const isFutureDate = new Date(data.date) > new Date();
@@ -21,15 +22,29 @@ const createRecord = async (data, userId) => {
   return {
     record: populated,
     warning: isFutureDate
-      ? 'This record has a future date. Make sure this is intentional.'
+      ? "This record has a future date. Make sure this is intentional."
       : null,
   };
 };
 
-const getRecords = async ({ page, limit, type, category, from, to, sortBy, order }) => {
+const getRecords = async ({
+  page,
+  limit,
+  type,
+  category,
+  from,
+  to,
+  sortBy,
+  order,
+}) => {
   const filter = {};
   if (type) filter.type = type;
-  if (category) filter.category = category.toLowerCase();
+  if (category) {
+    filter.category = {
+      $regex: category,
+      $options: "i",
+    };
+  }
   if (from || to) {
     filter.date = {};
     if (from) filter.date.$gte = from;
@@ -37,11 +52,11 @@ const getRecords = async ({ page, limit, type, category, from, to, sortBy, order
   }
 
   const skip = (page - 1) * limit;
-  const sortOrder = order === 'asc' ? 1 : -1;
+  const sortOrder = order === "asc" ? 1 : -1;
 
   const [records, total] = await Promise.all([
     FinancialRecord.find(filter)
-      .populate('createdBy', 'name email')
+      .populate("createdBy", "name email")
       .sort({ [sortBy]: sortOrder })
       .skip(skip)
       .limit(limit),
@@ -55,8 +70,11 @@ const getRecords = async ({ page, limit, type, category, from, to, sortBy, order
 };
 
 const getRecordById = async (id) => {
-  const record = await FinancialRecord.findById(id).populate('createdBy', 'name email');
-  if (!record) throw new AppError('Record not found', 404);
+  const record = await FinancialRecord.findById(id).populate(
+    "createdBy",
+    "name email",
+  );
+  if (!record) throw new AppError("Record not found", 404);
   return record;
 };
 
@@ -66,9 +84,9 @@ const updateRecord = async (id, data) => {
   const record = await FinancialRecord.findByIdAndUpdate(id, data, {
     new: true,
     runValidators: true,
-  }).populate('createdBy', 'name email');
+  }).populate("createdBy", "name email");
 
-  if (!record) throw new AppError('Record not found', 404);
+  if (!record) throw new AppError("Record not found", 404);
   return record;
 };
 
@@ -76,10 +94,16 @@ const deleteRecord = async (id, userId) => {
   const record = await FinancialRecord.findByIdAndUpdate(
     id,
     { isDeleted: true, deletedAt: new Date(), deletedBy: userId },
-    { new: true }
+    { new: true },
   );
-  if (!record) throw new AppError('Record not found', 404);
+  if (!record) throw new AppError("Record not found", 404);
   return record;
 };
 
-module.exports = { createRecord, getRecords, getRecordById, updateRecord, deleteRecord };
+module.exports = {
+  createRecord,
+  getRecords,
+  getRecordById,
+  updateRecord,
+  deleteRecord,
+};
