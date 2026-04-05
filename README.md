@@ -1,4 +1,4 @@
-# Finance Dashboard API
+# Finance Dashboard 
 
 A production-grade RESTful backend for a multi-role financial data management system. Built with Node.js, Express, and MongoDB. Supports role-based access control, financial record management, and real-time dashboard analytics via aggregation pipelines.
 
@@ -15,12 +15,11 @@ A production-grade RESTful backend for a multi-role financial data management sy
 - [How Data Flows](#how-data-flows)
 - [API Reference](#api-reference)
 - [Role Permissions](#role-permissions)
-- [Authentication System](#authentication-system)
 - [Local Setup](#local-setup)
 - [Environment Variables](#environment-variables)
 - [Seeding the Database](#seeding-the-database)
 - [Error Handling](#error-handling)
-- [Design Decisions & Tradeoffs](#design-decisions--tradeoffs)
+
 
 ---
 
@@ -75,14 +74,6 @@ Financial data is the textbook use case for relational databases. The data has a
 | Data simplicity | The data model is two collections with one relationship. MongoDB's limitations (no native JOINs, no DECIMAL type) only matter at scale or with complex relational data. |
 | Aggregation pipeline | MongoDB's `$group`, `$match`, and `$sum` operators are powerful enough for all dashboard queries in this project. |
 
-### How MongoDB's weaknesses were compensated
-
-**Floating point precision:** MongoDB has no `DECIMAL` type. Money stored as a JavaScript `Number` (IEEE 754 float) can produce rounding errors — `0.1 + 0.2 === 0.30000000000000004`. This project solves it by storing amounts as integers in the smallest currency unit (paise). `₹1250.75` is stored as `125075`. The `toJSON` transform divides by 100 before sending to the client, so the API always returns correct decimal values.
-
-**Schema flexibility as a liability:** MongoDB allows documents in the same collection to have different shapes. For financial data this is dangerous. This project enforces strict schema validation at the Mongoose level — all fields have `required`, `type`, `enum`, and `min` constraints. The database cannot accept malformed records.
-
-**ACID transactions:** MongoDB supports multi-document transactions only with a replica set. MongoDB Atlas clusters are replica sets by default, so this project's cloud deployment supports transactions if needed. For the operations in this project (single-document writes), ACID guarantees are satisfied per-document natively.
-
 ---
 
 ## Architecture Overview
@@ -90,36 +81,36 @@ Financial data is the textbook use case for relational databases. The data has a
 The backend is organized into four strict layers. Each request passes through all four layers in sequence. No layer skips another.
 
 ```
-HTTP Request
-     │
-     ▼
+             HTTP Request
+                  │
+                  ▼
 ┌─────────────────────────────────────────┐
 │              Routes layer               │
 │  auth · users · records · dashboard     │
 └─────────────────────────────────────────┘
-     │
-     ▼
+                  │
+                  ▼
 ┌─────────────────────────────────────────┐
 │            Middleware layer             │
 │  authenticate → authorize → validate    │
 └─────────────────────────────────────────┘
-     │
-     ▼
+                 │
+                 ▼
 ┌─────────────────────────────────────────┐
 │           Controllers layer             │
 │  Parse req · call service · shape res   │
 │  (zero business logic here)             │
 └─────────────────────────────────────────┘
-     │
-     ▼
+                 │
+                 ▼
 ┌─────────────────────────────────────────┐
 │             Services layer              │
 │  All business logic lives here          │
 │  AuthService · UserService ·            │
 │  RecordService · DashboardService       │
 └─────────────────────────────────────────┘
-     │
-     ▼
+                │
+                ▼
 ┌─────────────────────────────────────────┐
 │         Mongoose ODM + MongoDB          │
 │  users · financial_records              │
@@ -177,7 +168,7 @@ finance-dashboard-api/
 │   │   ├── asyncHandler.js         # Wraps async controllers, no try/catch needed
 │   │   └── generateTokens.js       # Access + refresh token generation
 │   ├── scripts/
-│   │   └── seed.js                 # npm run seed — 3 users + 50 records
+│   │   └── seed.js                 # npm run seed — 3 users + 150 records
 │   └── app.js                      # Express setup, route mounting, error handler
 ├── .env
 ├── .env.example
@@ -197,7 +188,7 @@ users collection
 ├── name         String        Required, 2–50 chars
 ├── email        String        Required, unique, indexed, lowercase
 ├── password     String        bcrypt hash (salt rounds: 12), never returned
-├── role         Enum          VIEWER | ANALYST | ADMIN  (default: VIEWER)
+├── role         Enum          VIEWER | ANALYST | ADMIN | SUPER_ADMIN (default: VIEWER)
 ├── status       Enum          ACTIVE | INACTIVE  (default: ACTIVE)
 ├── refreshToken String        Stored server-side for rotation validation, hidden
 ├── lastLoginAt  Date          Updated on every successful login
@@ -333,20 +324,20 @@ All endpoints are prefixed with `/api/v1`.
 
 | Method | Endpoint | Auth | Query/Body | Description |
 |--------|----------|------|------------|-------------|
-| GET | `/users` | ADMIN | `?page&limit&role&status&search` | List all users with pagination |
-| GET | `/users/:id` | ADMIN | — | Get single user |
-| PATCH | `/users/:id/role` | ADMIN | `{ role }` | Change user role |
-| PATCH | `/users/:id/status` | ADMIN | `{ status }` | Activate or deactivate user |
+| GET | `/users` | ADMIN, SUPER_ADMIN | `?page&limit&role&status&search` | List all users with pagination |
+| GET | `/users/:id` | ADMIN, SUPER_ADMIN | — | Get single user |
+| PATCH | `/users/:id/role` | ADMIN, SUPER_ADMIN | `{ role }` | Change user role |
+| PATCH | `/users/:id/status` | ADMIN, SUPER_ADMIN | `{ status }` | Activate or deactivate user |
 
 ### Records
 
 | Method | Endpoint | Auth | Query/Body | Description |
 |--------|----------|------|------------|-------------|
-| POST | `/records` | ADMIN | `amount, type, category, date, notes?` | Create record |
-| GET | `/records` | ADMIN, ANALYST | `?page&limit&type&category&from&to&sortBy&order` | List records with filters |
-| GET | `/records/:id` | ADMIN, ANALYST | — | Get single record |
-| PATCH | `/records/:id` | ADMIN | any record fields | Update record |
-| DELETE | `/records/:id` | ADMIN | — | Soft delete record |
+| POST | `/records` | ADMIN, SUPER_ADMIN | `amount, type, category, date, notes?` | Create record |
+| GET | `/records` | ADMIN, SUPER_ADMIN, ANALYST | `?page&limit&type&category&from&to&sortBy&order` | List records with filters |
+| GET | `/records/:id` | ADMIN, SUPER_ADMIN, ANALYST | — | Get single record |
+| PATCH | `/records/:id` | ADMIN, SUPER_ADMIN | any record fields | Update record |
+| DELETE | `/records/:id` | ADMIN, SUPER_ADMIN | — | Soft delete record |
 
 **GET /records query parameters:**
 
@@ -365,10 +356,10 @@ All endpoints are prefixed with `/api/v1`.
 
 | Method | Endpoint | Auth | Query | Description |
 |--------|----------|------|-------|-------------|
-| GET | `/dashboard/summary` | ADMIN, ANALYST | — | Total income, expense, net balance |
-| GET | `/dashboard/by-category` | ADMIN, ANALYST | — | Totals grouped by category |
-| GET | `/dashboard/trends` | ADMIN, ANALYST | `?period=monthly\|weekly` | Monthly or weekly breakdown (last 12 periods) |
-| GET | `/dashboard/recent` | ADMIN, ANALYST | `?limit=10` | Most recent transactions |
+| GET | `/dashboard/summary` | ADMIN, ANALYST, SUPER_ADMIN | — | Total income, expense, net balance |
+| GET | `/dashboard/by-category` | ADMIN, ANALYST, SUPER_ADMIN | — | Totals grouped by category |
+| GET | `/dashboard/trends` | ADMIN, ANALYST, SUPER_ADMIN | `?period=monthly\|weekly` | Monthly or weekly breakdown (last 12 periods) |
+| GET | `/dashboard/recent` | ADMIN, ANALYST, SUPER_ADMIN | `?limit=10` | Most recent transactions |
 
 ### Sample responses
 
@@ -405,58 +396,30 @@ All endpoints are prefixed with `/api/v1`.
 
 ## Role Permissions
 
-| Action | VIEWER | ANALYST | ADMIN |
-|--------|--------|---------|-------|
-| Register / Login | ✓ | ✓ | ✓ |
-| View own profile | ✓ | ✓ | ✓ |
-| View records | ✗ | ✓ | ✓ |
-| Create records | ✗ | ✗ | ✓ |
-| Update records | ✗ | ✗ | ✓ |
-| Delete records | ✗ | ✗ | ✓ |
-| View dashboard | ✗ | ✓ | ✓ |
-| List all users | ✗ | ✗ | ✓ |
-| Change user role | ✗ | ✗ | ✓ |
-| Activate/deactivate user | ✗ | ✗ | ✓ |
+| Action | VIEWER | ANALYST | ADMIN | SUPER_ADMIN |
+|--------|--------|---------|-------|-------------|
+| Register / Login | ✓ | ✓ | ✓ | ✓ | 
+| View records | ✗ | ✓ | ✓ | ✓ | 
+| Create records | ✗ | ✗ | ✓ | ✓ | 
+| Update records | ✗ | ✗ | ✓ | ✓ | 
+| Delete records | ✗ | ✗ | ✓ | ✓ | 
+| View dashboard | ✓ | ✓ | ✓ | ✓ | 
+| List all users | ✗ | ✗ | ✓ | ✓ |  
+| Change user role except Admin | ✗ | ✗ | ✓ | ✓ | 
+| Change user role to Admin | ✗ | ✗ | ✗ | ✓ | 
+| Delete Admin Profiles | ✗ | ✗ | ✗ | ✓ | 
+| Activate/deactivate user | ✗ | ✗ | ✓ | ✓ | 
 
-**Implementation note:** Permissions are enforced at the middleware level, not inside controllers. The `authorize('ADMIN', 'ANALYST')` middleware rejects any request with the wrong role before the controller function is ever called.
+**Implementation note:** Permissions are enforced at the middleware level, not inside controllers. The `authorize('ADMIN', 'ANALYST','SUPER_ADMIN')` middleware rejects any request with the wrong role before the controller function is ever called.
 
 ```js
 // Example — how routes express permissions declaratively
-router.post('/',    authenticate, authorize('ADMIN'),            createRecord);
-router.get('/',     authenticate, authorize('ADMIN', 'ANALYST'), getRecords);
-router.delete('/:id', authenticate, authorize('ADMIN'),          deleteRecord);
+router.post('/',    authenticate, authorize('ADMIN','SUPER_ADMIN'),            createRecord);
+router.get('/',     authenticate, authorize('ADMIN', 'ANALYST','SUPER_ADMIN'), getRecords);
+router.delete('/:id', authenticate, authorize('ADMIN','SUPER_ADMIN'),          deleteRecord);
 ```
 
----
 
-## Authentication System
-
-### Two-token strategy
-
-This API uses two tokens, not one. This is the production standard.
-
-**Access token** — short-lived (15 minutes). Sent in `Authorization: Bearer <token>` header on every protected request. When it expires, the client uses the refresh token to get a new one without logging in again.
-
-**Refresh token** — long-lived (7 days). Stored server-side in the user document alongside being returned to the client. Used only to issue new access tokens. If someone steals a refresh token and uses it after it has already been rotated, the server detects the reuse and forces a full re-login.
-
-### Token payload
-
-```json
-{
-  "id": "user_object_id",
-  "email": "user@example.com",
-  "role": "ANALYST",
-  "iat": 1700000000,
-  "exp": 1700000900
-}
-```
-
-### How to authenticate requests
-
-Every protected endpoint requires:
-```
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
 
 ---
 
@@ -494,7 +457,7 @@ Open `.env` and fill in your values. See [Environment Variables](#environment-va
 npm run seed
 ```
 
-This creates three users and 50 sample financial records. Credentials are printed to the console.
+This creates three users and 150 sample financial records. Credentials are printed to the console.
 
 ### 5. Start the server
 
@@ -545,14 +508,9 @@ curl -X POST http://localhost:5000/api/v1/auth/login \
 | `JWT_REFRESH_EXPIRES` | No | Refresh token TTL (default 7d) | `7d` |
 | `NODE_ENV` | No | Environment flag | `development` |
 | `FRONTEND_URL` | No | Allowed CORS origin in production | `https://your-app.com` |
+| `SUPER_ADMIN_PASSWORD` | YES | Password for SUPER_ADMIN Profile | `wkkwdhcihiuc` |
 
-**Getting a MongoDB Atlas URI:**
-1. Create a free account at [mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas)
-2. Create a free M0 cluster
-3. Create a database user under Security → Database Access
-4. Whitelist your IP under Security → Network Access (or use `0.0.0.0/0` for development)
-5. Click Connect → Drivers → copy the connection string
-6. Replace `<password>` with your database user's password
+
 
 ---
 
@@ -618,40 +576,6 @@ For validation errors, `errors` is populated with field-level details:
 
 ---
 
-## Design Decisions & Tradeoffs
 
-**Soft delete instead of hard delete**
-Records are never physically removed from the database. The `isDeleted` flag is set to `true` and a Mongoose query middleware hook filters them out of all `find` calls automatically. This preserves an audit trail and allows accidental deletion to be reversed. Tradeoff: the collection grows over time. At production scale this would be paired with an archiving strategy.
 
-**Amounts stored as integers (paise)**
-JavaScript's IEEE 754 floating point arithmetic cannot represent all decimal fractions exactly. `0.1 + 0.2` evaluates to `0.30000000000000004`. For money this is unacceptable. Storing amounts as integers (smallest currency unit) eliminates this entirely. The `toJSON` transform converts back to decimal for the API response so clients always receive readable values like `1250.75`.
-
-**Access token + refresh token (not single long-lived token)**
-A single token that lasts 7 days is a security liability — if it leaks, an attacker has a week of access. Short-lived access tokens (15 minutes) limit the damage window. Refresh tokens are stored server-side and can be invalidated immediately on logout or suspicious activity.
-
-**Authorization as middleware, not in controllers**
-Most beginner implementations check `if (req.user.role !== 'ADMIN')` inside every controller function. This couples authorization logic to business logic and means permission rules are scattered across files. In this project, `authorize('ADMIN')` is a single reusable middleware that can be added or removed from any route in one line.
-
-**`asyncHandler` wrapper**
-Without this, every async controller needs a try/catch block that calls `next(err)`. With `asyncHandler`, controllers contain only happy-path logic and errors propagate automatically to the global error handler. Less boilerplate, fewer places to forget error handling.
-
-**Module-based folder structure (not layer-based)**
-Many tutorials organize by layer: a top-level `controllers/` folder, `models/` folder, `routes/` folder. This project organizes by module: `modules/records/` contains the model, controller, service, routes, and validation for records together. As the project grows, everything related to a feature is in one place.
-
-**Compound indexes on `FinancialRecord`**
-The dashboard aggregation queries filter by `isDeleted`, `type`, `category`, and `date` in various combinations. Without indexes, MongoDB performs a full collection scan for each query. Compound indexes on `(type, isDeleted)`, `(category, isDeleted)`, and `(date, isDeleted)` ensure these queries stay fast as the collection grows.
-
----
-
-## Assumptions
-
-- A user's role is set at registration time and can only be changed by an ADMIN after the fact
-- VIEWER role has no access to records or dashboard — it represents a user who is registered but not yet granted meaningful access
-- Soft-deleted records are permanently hidden from all API responses (no restore endpoint in v1)
-- All monetary amounts in the API request/response use rupees with up to 2 decimal places — the paise conversion is entirely internal
-- The `date` field on a record represents when the financial transaction occurred, not when it was entered into the system
-- An admin cannot change their own role or deactivate their own account (prevents accidental lockout)
-
----
-
-*Built as part of a backend engineering internship assessment. The goal was to demonstrate API design, data modeling, access control, and backend architecture — not to build a production system.*
+*Built as part of a backend engineering project. The goal was to demonstrate API design, data modeling, access control, and backend architecture *
